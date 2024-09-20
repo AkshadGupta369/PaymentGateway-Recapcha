@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script type="text/javascript">
+        var onloadCallback = function() {
+          grecaptcha.render('html_element', {
+            'sitekey' : '6LcWm0kqAAAAAKvlHvqS1U0IZbnIY0s-RlGHEOv_'
+          });
+        };
+      </script>
+</head>
+<body>
+      <form action="http://localhost:3000/submit" method="POST">
+        <div id="html_element"></div>
+        <br>
+        <input type="submit" value="Submit">
+      </form>
+      <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
+          async defer>
+      </script>
+    </form>
+</body>
+</html>
+
