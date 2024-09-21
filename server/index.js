@@ -6,12 +6,15 @@ const axios = require('axios');
 const bodyParser = require('body-parser');
 // const uuid=require("uuid/v4");
 const { v4: uuidv4 } = require('uuid');
+const nodemailer=require("nodemailer")
 
 
 const app = express();
 
 app.use(cors());
 app.use(express.json()); 
+app.set("view engine","ejs");
+app.use(express.urlencoded({extended:false}))
 // Middleware for parsing form data
 app.use(bodyParser.urlencoded({ extended: true })); // To parse URL-encoded bodies
 app.use(bodyParser.json()); // To parse JSON bodies
@@ -59,6 +62,11 @@ app.get("/", (req, res) => {
 
 
 
+
+
+
+//Payement gateway
+
 app.post("/payment",(req,res)=>{
     const{product,token}=req.body;
     console.log("Product"+product);
@@ -89,6 +97,8 @@ app.post("/payment",(req,res)=>{
 })
 
 
+//Recapcha
+
 
 
 app.post('/submit', async (req, res) => {
@@ -112,6 +122,107 @@ app.post('/submit', async (req, res) => {
     }
   });
 
+
+
+
+
+
+
+
+
+
+
+  //Forgot Password
+
+
+  app.post("/forgot-password",async (req,res)=>{
+    const{email}=req.body;
+    try {
+        if(!email){
+            res.status(200).send({message:"invalid email"});
+        }
+
+        const oldUser=await User.findOne(email);
+        if(!oldUser){
+            res.status(200).send({message:"not found"});
+        }
+        const secret=JWT_SECRET+oldUser.password;
+        const token=jwt.sign({email:oldUser.email,id:oldUser._id},secret,{expiresIn:"1hr"});
+        const link=`http://localhost:3000/reset-password/${oldUser._id}/${token}`;
+        var transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user:email,
+            pass: 'ujvkvukjn'
+          }
+        });
+        
+        var mailOptions = {
+          from: 'youremail@gmail.com',
+          to: 'myfriend@yahoo.com',
+          subject: 'Sending Email using Node.js',
+          text: link
+        };
+        
+        transporter.sendMail(mailOptions, function(error, info){
+          if (error) {
+            console.log(error);
+          } else {
+            console.log('Email sent: ' + info.response);
+          }
+        });
+        console.log(link); 
+
+    } catch (error) {
+        
+    }
+  })
+
+  app.get("/reset-password/:id/:token",async(req,res)=>{
+    const {id,token}=req.params;
+    console.log(req.params);
+    const oldUser=await User.findOne({_id:id});
+    if(!oldUser){
+        res.status(200).send({message:"not found"});
+    }
+    const secret=JWT_SECRET+oldUser.password;
+    try { 
+        const verify=jwt.verify(token,secret);
+        // res.send("verified");
+        res.render("index",{email:verify.email,status:"inverified"});
+    } catch (error) {
+        res.send("not verified");
+    }
+    // res.send(done);
+  })
+
+  app.post("/reset-password/:id/:token",async(req,res)=>{
+    const {id,token}=req.params;
+   const {password}=req.body;
+    const oldUser=await User.findOne({_id:id});
+    if(!oldUser){
+        res.status(200).send({message:"not found"});
+    }
+    const secret=JWT_SECRET+oldUser.password;
+    try { 
+        const verify=jwt.verify(token,secret);
+        const encryptedPassword=await bcrypt.hash(password,10);
+        await User.updateOne({
+          _id:id,
+        },{
+          $set:{
+            password:encryptedPassword,
+          }
+        })
+
+
+        res.json({status:"password changed"});
+        res.render("index",{email:verify.email,status:"verified"});
+    } catch (error) {
+        res.send("not verified");
+    }
+    // res.send(done);
+  })
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
 });
